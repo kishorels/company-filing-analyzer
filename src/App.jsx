@@ -1,4 +1,3 @@
-
 import { useMemo, useState } from 'react'
 import {
   UploadCloud,
@@ -19,6 +18,8 @@ import {
   LayoutDashboard,
   X,
   FileJson,
+  Layers,
+  Table as TableIcon,
 } from 'lucide-react'
 
 const WEBHOOK_URL =
@@ -111,14 +112,14 @@ function downloadJSON(report) {
 
 function StatCard({ label, value, icon: Icon }) {
   return (
-    <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
-      <div className="flex items-start justify-between gap-3">
-        <div>
-          <p className="text-sm text-slate-500">{label}</p>
-          <p className="mt-2 text-2xl font-bold text-slate-950">{value}</p>
+    <div className="rounded-2xl border border-slate-200 bg-white p-3.5 sm:p-5 shadow-xs transition hover:shadow-sm">
+      <div className="flex items-start justify-between gap-2 sm:gap-3">
+        <div className="min-w-0">
+          <p className="truncate text-xs sm:text-sm font-medium text-slate-500">{label}</p>
+          <p className="mt-1 sm:mt-2 text-xl sm:text-2xl font-bold tracking-tight text-slate-950">{value}</p>
         </div>
-        <div className="rounded-xl bg-blue-50 p-3 text-blue-700">
-          <Icon size={21} />
+        <div className="shrink-0 rounded-xl bg-blue-50 p-2 sm:p-3 text-blue-700">
+          <Icon className="h-4 w-4 sm:h-5 sm:w-5" />
         </div>
       </div>
     </div>
@@ -128,10 +129,10 @@ function StatCard({ label, value, icon: Icon }) {
 function Field({ label, value, wide = false }) {
   return (
     <div className={wide ? 'sm:col-span-2' : ''}>
-      <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">
+      <p className="text-[11px] sm:text-xs font-semibold uppercase tracking-wider text-slate-500">
         {label}
       </p>
-      <p className="mt-1 break-words text-sm leading-6 text-slate-800">
+      <p className="mt-1 break-words text-xs sm:text-sm leading-relaxed text-slate-800">
         {valueOf(value)}
       </p>
     </div>
@@ -140,16 +141,16 @@ function Field({ label, value, wide = false }) {
 
 function SearchBox({ value, onChange, placeholder }) {
   return (
-    <div className="relative w-full sm:max-w-sm">
+    <div className="relative w-full sm:max-w-xs">
       <Search
-        size={17}
+        size={16}
         className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400"
       />
       <input
         value={value}
         onChange={(event) => onChange(event.target.value)}
         placeholder={placeholder || 'Search records...'}
-        className="w-full rounded-xl border border-slate-200 bg-white py-2.5 pl-10 pr-3 text-sm outline-none focus:border-blue-500 focus:ring-4 focus:ring-blue-100"
+        className="w-full rounded-xl border border-slate-200 bg-white py-2 pl-9 pr-3 text-xs sm:text-sm outline-none transition focus:border-blue-500 focus:ring-3 focus:ring-blue-100"
       />
     </div>
   )
@@ -157,55 +158,130 @@ function SearchBox({ value, onChange, placeholder }) {
 
 function EmptyState({ message }) {
   return (
-    <div className="rounded-2xl border border-dashed border-slate-300 bg-white p-10 text-center">
-      <FileText size={32} className="mx-auto text-slate-400" />
-      <p className="mt-3 font-semibold text-slate-700">No records found</p>
-      <p className="mt-1 text-sm text-slate-500">{message}</p>
+    <div className="rounded-2xl border border-dashed border-slate-300 bg-white p-6 sm:p-10 text-center">
+      <FileText size={28} className="mx-auto text-slate-400" />
+      <p className="mt-2.5 font-semibold text-slate-700 text-sm sm:text-base">No records found</p>
+      <p className="mt-1 text-xs sm:text-sm text-slate-500">{message}</p>
     </div>
   )
 }
 
-function DataTable({ rows, columns, emptyMessage }) {
+function DataTable({ rows, columns, emptyMessage, renderMobileCard }) {
+  const [mobileView, setMobileView] = useState('cards') // 'cards' | 'table'
+
   if (!rows.length) {
     return <EmptyState message={emptyMessage || 'No data available.'} />
   }
 
   return (
-    <div className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
-      <div className="overflow-x-auto">
-        <table className="min-w-full divide-y divide-slate-200 text-left text-sm">
-          <thead className="bg-slate-50">
-            <tr>
-              {columns.map((column) => (
-                <th
-                  key={column.key}
-                  className="whitespace-nowrap px-4 py-3 text-xs font-bold uppercase tracking-wide text-slate-500"
-                >
-                  {column.label}
-                </th>
-              ))}
-            </tr>
-          </thead>
-          <tbody className="divide-y divide-slate-100">
-            {rows.map((row, index) => (
-              <tr
+    <div className="space-y-3">
+      {/* Mobile view toggle */}
+      <div className="flex items-center justify-between sm:hidden">
+        <span className="text-xs text-slate-500 font-medium">
+          {rows.length} {rows.length === 1 ? 'record' : 'records'}
+        </span>
+        <div className="inline-flex items-center rounded-lg bg-slate-100 p-0.5 text-xs">
+          <button
+            type="button"
+            onClick={() => setMobileView('cards')}
+            className={`inline-flex items-center gap-1 rounded-md px-2.5 py-1 font-medium transition ${
+              mobileView === 'cards'
+                ? 'bg-white text-slate-900 shadow-xs'
+                : 'text-slate-500 hover:text-slate-900'
+            }`}
+          >
+            <Layers size={13} />
+            Cards
+          </button>
+          <button
+            type="button"
+            onClick={() => setMobileView('table')}
+            className={`inline-flex items-center gap-1 rounded-md px-2.5 py-1 font-medium transition ${
+              mobileView === 'table'
+                ? 'bg-white text-slate-900 shadow-xs'
+                : 'text-slate-500 hover:text-slate-900'
+            }`}
+          >
+            <TableIcon size={13} />
+            Table
+          </button>
+        </div>
+      </div>
+
+      {/* Mobile Cards (when mobileView === 'cards') */}
+      {mobileView === 'cards' && (
+        <div className="space-y-2.5 sm:hidden">
+          {rows.map((row, index) =>
+            renderMobileCard ? (
+              renderMobileCard(row, index)
+            ) : (
+              <div
                 key={index}
-                className="align-top hover:bg-slate-50"
+                className="rounded-xl border border-slate-200 bg-white p-3.5 shadow-xs space-y-2"
               >
                 {columns.map((column) => (
-                  <td
+                  <div key={column.key} className="flex flex-col text-xs">
+                    <span className="text-[10px] font-semibold uppercase text-slate-400">
+                      {column.label}
+                    </span>
+                    <span className="mt-0.5 text-slate-800 break-words">
+                      {column.render
+                        ? column.render(row[column.key], row)
+                        : valueOf(row[column.key], '—')}
+                    </span>
+                  </div>
+                ))}
+              </div>
+            )
+          )}
+        </div>
+      )}
+
+      {/* Table (always visible on >= sm, visible on mobile only when mobileView === 'table') */}
+      <div
+        className={`${
+          mobileView === 'cards' ? 'hidden sm:block' : 'block'
+        } overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-xs`}
+      >
+        {/* Mobile swipe hint */}
+        <div className="sm:hidden flex items-center justify-center gap-1.5 border-b border-slate-100 bg-slate-50/80 px-3 py-1.5 text-[11px] text-slate-500">
+          <span>←</span>
+          <span>Swipe horizontally to view all columns</span>
+          <span>→</span>
+        </div>
+
+        <div className="overflow-x-auto touch-scroll">
+          <table className="min-w-full divide-y divide-slate-200 text-left text-xs sm:text-sm">
+            <thead className="bg-slate-50">
+              <tr>
+                {columns.map((column) => (
+                  <th
                     key={column.key}
-                    className="max-w-xs px-4 py-3 leading-6 text-slate-700"
+                    className="whitespace-nowrap px-3.5 py-2.5 sm:px-4 sm:py-3 text-[11px] sm:text-xs font-bold uppercase tracking-wider text-slate-500"
                   >
-                    {column.render
-                      ? column.render(row[column.key], row)
-                      : valueOf(row[column.key], '—')}
-                  </td>
+                    {column.label}
+                  </th>
                 ))}
               </tr>
-            ))}
-          </tbody>
-        </table>
+            </thead>
+            <tbody className="divide-y divide-slate-100">
+              {rows.map((row, index) => (
+                <tr key={index} className="align-top hover:bg-slate-50/80 transition-colors">
+                  {columns.map((column) => (
+                    <td
+                      key={column.key}
+                      className="max-w-xs px-3.5 py-2.5 sm:px-4 sm:py-3 leading-relaxed text-slate-700"
+                    >
+                      {column.render
+                        ? column.render(row[column.key], row)
+                        : valueOf(row[column.key], '—')}
+                    </td>
+                  ))}
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
       </div>
     </div>
   )
@@ -319,55 +395,59 @@ export default function App() {
   }
 
   return (
-    <div className="min-h-screen bg-slate-50 text-slate-900">
-      <header className="sticky top-0 z-30 border-b border-slate-200 bg-white/95 backdrop-blur">
-        <div className="mx-auto flex max-w-7xl items-center justify-between px-4 py-4 sm:px-6">
-          <div className="flex items-center gap-3">
-            <div className="rounded-xl bg-blue-700 p-2.5 text-white">
-              <ShieldCheck size={24} />
+    <div className="min-h-screen bg-slate-50 text-slate-900 flex flex-col selection:bg-blue-100 selection:text-blue-900">
+      {/* Top Header */}
+      <header className="sticky top-0 z-30 border-b border-slate-200 bg-white/95 backdrop-blur-md">
+        <div className="mx-auto flex max-w-7xl items-center justify-between px-3.5 py-3 sm:px-6 sm:py-4">
+          <div className="flex items-center gap-2.5 sm:gap-3">
+            <div className="rounded-xl bg-blue-700 p-2 text-white sm:p-2.5 shadow-xs">
+              <ShieldCheck className="h-5 w-5 sm:h-6 sm:w-6" />
             </div>
             <div>
-              <h1 className="text-lg font-bold">FileScope AI</h1>
-              <p className="text-xs text-slate-500">
+              <h1 className="text-base sm:text-lg font-bold leading-tight tracking-tight">
+                FileScope AI
+              </h1>
+              <p className="text-[11px] sm:text-xs text-slate-500">
                 Company Filing Analyzer
               </p>
             </div>
           </div>
 
-          <span className="hidden items-center gap-2 rounded-full border border-emerald-200 bg-emerald-50 px-3 py-1.5 text-xs font-semibold text-emerald-700 sm:flex">
-            <span className="h-2 w-2 rounded-full bg-emerald-500" />
-            Filing analysis
+          <span className="flex items-center gap-1.5 rounded-full border border-emerald-200 bg-emerald-50 px-2.5 py-1 text-[11px] sm:text-xs font-semibold text-emerald-700 sm:px-3 sm:py-1.5">
+            <span className="h-1.5 w-1.5 sm:h-2 sm:w-2 rounded-full bg-emerald-500 animate-pulse" />
+            <span className="hidden xs:inline">Filing</span> Analysis
           </span>
         </div>
       </header>
 
-      <main className="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:py-10">
+      {/* Main Content Area */}
+      <main className="mx-auto max-w-7xl w-full flex-1 px-3.5 py-5 sm:px-6 sm:py-8 lg:py-10">
         {!report && (
           <>
             <section className="max-w-3xl">
-              <p className="text-xs font-bold uppercase tracking-[0.2em] text-blue-700">
-                Corporate intelligence
+              <p className="text-[11px] sm:text-xs font-bold uppercase tracking-[0.2em] text-blue-700">
+                Corporate Intelligence
               </p>
-              <h2 className="mt-3 text-3xl font-bold tracking-tight text-slate-950 sm:text-5xl">
+              <h2 className="mt-2 sm:mt-3 text-2xl sm:text-4xl lg:text-5xl font-bold tracking-tight text-slate-950">
                 Company filings,{' '}
                 <span className="text-blue-700">made clear.</span>
               </h2>
-              <p className="mt-4 text-base leading-7 text-slate-600">
+              <p className="mt-2.5 sm:mt-4 text-xs sm:text-base leading-relaxed sm:leading-7 text-slate-600">
                 Upload a company filing ZIP to review company details,
                 directors, shareholders, auditor information, related parties
                 and business activity records.
               </p>
             </section>
 
-            <section className="mt-8 grid gap-6 lg:grid-cols-[1.1fr_0.9fr]">
-              <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm sm:p-7">
-                <div className="flex items-center gap-3">
-                  <div className="rounded-xl bg-blue-50 p-3 text-blue-700">
-                    <UploadCloud size={24} />
+            <section className="mt-6 sm:mt-8 grid gap-5 sm:gap-6 lg:grid-cols-[1.1fr_0.9fr]">
+              <div className="rounded-2xl border border-slate-200 bg-white p-4 sm:p-7 shadow-xs">
+                <div className="flex items-center gap-2.5 sm:gap-3">
+                  <div className="rounded-xl bg-blue-50 p-2.5 sm:p-3 text-blue-700">
+                    <UploadCloud className="h-5 w-5 sm:h-6 sm:w-6" />
                   </div>
                   <div>
-                    <h3 className="font-bold">Upload company filing</h3>
-                    <p className="mt-1 text-sm text-slate-500">
+                    <h3 className="font-bold text-sm sm:text-base">Upload company filing</h3>
+                    <p className="mt-0.5 text-xs sm:text-sm text-slate-500">
                       ZIP containing PDF, XML or Excel documents
                     </p>
                   </div>
@@ -384,10 +464,10 @@ export default function App() {
                     setDragging(false)
                     chooseFile(event.dataTransfer.files?.[0])
                   }}
-                  className={`mt-6 flex min-h-56 cursor-pointer flex-col items-center justify-center rounded-2xl border-2 border-dashed p-6 text-center transition ${
+                  className={`mt-4 sm:mt-6 flex min-h-48 sm:min-h-56 cursor-pointer flex-col items-center justify-center rounded-2xl border-2 border-dashed p-4 sm:p-6 text-center transition ${
                     dragging
                       ? 'border-blue-600 bg-blue-50'
-                      : 'border-slate-300 bg-slate-50 hover:border-blue-500 hover:bg-blue-50/50'
+                      : 'border-slate-300 bg-slate-50/70 hover:border-blue-500 hover:bg-blue-50/50'
                   }`}
                 >
                   <input
@@ -399,23 +479,23 @@ export default function App() {
                     }
                   />
 
-                  <FileArchive size={42} className="text-blue-700" />
-                  <p className="mt-4 break-all font-semibold">
+                  <FileArchive className="h-8 w-8 sm:h-11 sm:w-11 text-blue-700" />
+                  <p className="mt-3 break-all font-semibold text-xs sm:text-base px-2">
                     {file ? file.name : 'Drop your ZIP file here'}
                   </p>
-                  <p className="mt-2 text-sm text-slate-500">
+                  <p className="mt-1 sm:mt-2 text-xs sm:text-sm text-slate-500">
                     {file
                       ? `${(file.size / 1024 / 1024).toFixed(2)} MB selected`
-                      : 'or click to browse your computer'}
+                      : 'or click to browse your files'}
                   </p>
-                  <span className="mt-4 rounded-lg bg-white px-4 py-2 text-sm font-semibold text-blue-700 shadow-sm">
+                  <span className="mt-3 sm:mt-4 rounded-xl bg-white px-3.5 py-1.5 sm:px-4 sm:py-2 text-xs sm:text-sm font-semibold text-blue-700 shadow-xs border border-slate-200">
                     Choose ZIP file
                   </span>
                 </label>
 
                 {file && (
-                  <div className="mt-4 flex items-center justify-between gap-3 rounded-xl border border-slate-200 p-3 text-sm">
-                    <span className="truncate">{file.name}</span>
+                  <div className="mt-3 sm:mt-4 flex items-center justify-between gap-2 rounded-xl border border-slate-200 bg-slate-50/60 p-2.5 sm:p-3 text-xs sm:text-sm">
+                    <span className="truncate font-medium text-slate-800">{file.name}</span>
                     <button
                       type="button"
                       onClick={() => {
@@ -423,60 +503,62 @@ export default function App() {
                         setError('')
                         setReport(null)
                       }}
-                      className="rounded-lg p-1 text-slate-500 hover:bg-slate-100 hover:text-red-600"
+                      className="rounded-lg p-1 text-slate-400 hover:bg-slate-200/70 hover:text-red-600 transition"
                       aria-label="Remove file"
                     >
-                      <X size={17} />
+                      <X size={16} />
                     </button>
                   </div>
                 )}
 
-                <div className="mt-4 flex items-start gap-2 text-xs leading-5 text-slate-500">
+                <div className="mt-3.5 sm:mt-4 flex items-start gap-2 text-[11px] sm:text-xs leading-5 text-slate-500">
                   <ShieldCheck
-                    size={16}
+                    size={15}
                     className="mt-0.5 shrink-0 text-emerald-600"
                   />
-                  The ZIP is sent to your configured n8n production webhook.
-                  Upload only documents you are authorized to process.
+                  <span>
+                    The ZIP is sent to your configured n8n production webhook.
+                    Upload only documents you are authorized to process.
+                  </span>
                 </div>
 
                 <button
                   type="button"
                   disabled={!file || loading}
                   onClick={analyzeFile}
-                  className="mt-6 flex w-full items-center justify-center gap-2 rounded-xl bg-blue-700 px-5 py-3.5 font-semibold text-white transition hover:bg-blue-800 disabled:cursor-not-allowed disabled:bg-slate-300"
+                  className="mt-4 sm:mt-6 flex w-full items-center justify-center gap-2 rounded-xl bg-blue-700 px-4 py-3 sm:py-3.5 text-xs sm:text-sm font-semibold text-white shadow-xs transition hover:bg-blue-800 active:scale-[0.99] disabled:cursor-not-allowed disabled:bg-slate-300 disabled:shadow-none"
                 >
                   {loading ? (
                     <>
-                      <RefreshCw size={18} className="animate-spin" />
+                      <RefreshCw size={17} className="animate-spin" />
                       Analyzing filing...
                     </>
                   ) : (
                     <>
                       Analyze company filing
-                      <ArrowRight size={18} />
+                      <ArrowRight size={17} />
                     </>
                   )}
                 </button>
 
                 {loading && (
-                  <p className="mt-3 text-center text-sm text-blue-700">
+                  <p className="mt-2.5 text-center text-xs sm:text-sm text-blue-700 animate-pulse font-medium">
                     Processing documents. Larger ZIP files may take longer.
                   </p>
                 )}
 
                 {error && (
-                  <div className="mt-5 flex items-start gap-3 rounded-xl border border-red-200 bg-red-50 p-4 text-sm text-red-700">
-                    <CircleAlert size={19} className="mt-0.5 shrink-0" />
-                    <p className="break-words">{error}</p>
+                  <div className="mt-4 flex items-start gap-2.5 rounded-xl border border-red-200 bg-red-50 p-3.5 text-xs sm:text-sm text-red-700">
+                    <CircleAlert size={18} className="mt-0.5 shrink-0" />
+                    <p className="break-words leading-relaxed">{error}</p>
                   </div>
                 )}
               </div>
 
               <aside className="space-y-4">
-                <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
-                  <h3 className="font-bold">What you can review</h3>
-                  <div className="mt-5 space-y-4">
+                <div className="rounded-2xl border border-slate-200 bg-white p-4 sm:p-6 shadow-xs">
+                  <h3 className="font-bold text-sm sm:text-base">What you can review</h3>
+                  <div className="mt-4 sm:mt-5 space-y-3.5 sm:space-y-4">
                     {[
                       [Building2, 'Company overview', 'Identity, address and financial metrics'],
                       [Users, 'Directors & shareholders', 'Names, designations and shareholding'],
@@ -484,13 +566,13 @@ export default function App() {
                       [Handshake, 'Related parties', 'Relationships and transaction amounts'],
                       [BriefcaseBusiness, 'Business activities', 'Activity codes and verification status'],
                     ].map(([Icon, title, description]) => (
-                      <div key={title} className="flex gap-3">
-                        <div className="h-fit rounded-lg bg-slate-100 p-2">
-                          <Icon size={18} />
+                      <div key={title} className="flex gap-2.5 sm:gap-3">
+                        <div className="h-fit rounded-lg bg-slate-100 p-2 shrink-0">
+                          <Icon className="h-4 w-4 sm:h-4.5 sm:w-4.5 text-slate-700" />
                         </div>
-                        <div>
-                          <p className="text-sm font-semibold">{title}</p>
-                          <p className="mt-1 text-xs leading-5 text-slate-500">
+                        <div className="min-w-0">
+                          <p className="text-xs sm:text-sm font-semibold text-slate-900">{title}</p>
+                          <p className="mt-0.5 text-[11px] sm:text-xs leading-relaxed text-slate-500">
                             {description}
                           </p>
                         </div>
@@ -499,12 +581,12 @@ export default function App() {
                   </div>
                 </div>
 
-                <div className="rounded-2xl bg-slate-900 p-6 text-white">
+                <div className="rounded-2xl bg-slate-900 p-4 sm:p-6 text-white shadow-xs">
                   <div className="flex items-center gap-2">
-                    <CircleAlert size={19} className="text-amber-300" />
-                    <h3 className="font-semibold">Review extracted data</h3>
+                    <CircleAlert size={17} className="text-amber-300" />
+                    <h3 className="font-semibold text-xs sm:text-sm">Review extracted data</h3>
                   </div>
-                  <p className="mt-3 text-sm leading-6 text-slate-300">
+                  <p className="mt-2 text-xs sm:text-sm leading-relaxed text-slate-300">
                     Missing fields are marked “Not Found”. Verify important
                     values against original filings before relying on them.
                   </p>
@@ -516,7 +598,8 @@ export default function App() {
 
         {report && data && (
           <>
-            <section className="flex flex-col gap-5 lg:flex-row lg:items-end lg:justify-between">
+            {/* Report Header */}
+            <section className="flex flex-col gap-4 sm:gap-5 lg:flex-row lg:items-end lg:justify-between">
               <div className="min-w-0">
                 <button
                   type="button"
@@ -526,37 +609,39 @@ export default function App() {
                     setSearch('')
                     setError('')
                   }}
-                  className="mb-4 inline-flex items-center gap-2 text-sm font-semibold text-blue-700 hover:text-blue-900"
+                  className="mb-3 inline-flex items-center gap-1.5 text-xs sm:text-sm font-semibold text-blue-700 hover:text-blue-900 transition"
                 >
-                  <ArrowRight className="rotate-180" size={16} />
+                  <ArrowRight className="rotate-180" size={15} />
                   Analyze another file
                 </button>
 
-                <div className="flex items-center gap-2 text-xs font-bold uppercase tracking-[0.18em] text-emerald-700">
-                  <CheckCircle2 size={15} />
+                <div className="flex items-center gap-1.5 text-[11px] sm:text-xs font-bold uppercase tracking-[0.18em] text-emerald-700">
+                  <CheckCircle2 size={14} />
                   Report generated
                 </div>
 
-                <h2 className="mt-2 break-words text-2xl font-bold tracking-tight text-slate-950 sm:text-3xl">
+                <h2 className="mt-1.5 break-words text-xl sm:text-3xl font-bold tracking-tight text-slate-950">
                   {valueOf(company.companyName, 'Company filing report')}
                 </h2>
-                <p className="mt-2 break-words text-sm text-slate-500">
-                  CIN: {valueOf(company.CIN)} · Incorporated:{' '}
-                  {valueOf(company.incorporationDate)}
-                </p>
+                <div className="mt-1.5 flex flex-wrap items-center gap-x-2.5 gap-y-1 text-xs sm:text-sm text-slate-500">
+                  <span>CIN: <strong className="font-medium text-slate-700">{valueOf(company.CIN)}</strong></span>
+                  <span className="hidden xs:inline">·</span>
+                  <span>Incorporated: <strong className="font-medium text-slate-700">{valueOf(company.incorporationDate)}</strong></span>
+                </div>
               </div>
 
               <button
                 type="button"
                 onClick={() => downloadJSON(report)}
-                className="inline-flex shrink-0 items-center justify-center gap-2 rounded-xl border border-slate-300 bg-white px-4 py-3 text-sm font-semibold text-slate-700 shadow-sm hover:bg-slate-50"
+                className="w-full sm:w-auto inline-flex shrink-0 items-center justify-center gap-2 rounded-xl border border-slate-300 bg-white px-4 py-2.5 sm:py-3 text-xs sm:text-sm font-semibold text-slate-700 shadow-xs hover:bg-slate-50 active:scale-[0.99] transition"
               >
-                <Download size={17} />
+                <Download size={16} />
                 Download JSON
               </button>
             </section>
 
-            <section className="mt-7 grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+            {/* Stat Cards: 2 cols on mobile, 4 on desktop */}
+            <section className="mt-5 sm:mt-7 grid grid-cols-2 gap-2.5 sm:gap-4 lg:grid-cols-4">
               <StatCard
                 label="Directors"
                 value={numberOf(data.totalDirectors ?? directors.length)}
@@ -573,15 +658,16 @@ export default function App() {
                 icon={Handshake}
               />
               <StatCard
-                label="Business activities"
+                label="Activities"
                 value={numberOf(data.totalActivityRecords ?? activities.length)}
                 icon={BriefcaseBusiness}
               />
             </section>
 
-            <div className="mt-8 border-b border-slate-200">
+            {/* Navigation Tabs with smooth horizontal touch-scroll */}
+            <div className="mt-6 sm:mt-8 border-b border-slate-200">
               <nav
-                className="-mb-px flex gap-1 overflow-x-auto"
+                className="-mb-px flex gap-1 overflow-x-auto no-scrollbar touch-scroll pb-1"
                 aria-label="Report sections"
               >
                 {TABS.map(({ id, label, icon: Icon }) => (
@@ -592,36 +678,38 @@ export default function App() {
                       setActiveTab(id)
                       setSearch('')
                     }}
-                    className={`inline-flex shrink-0 items-center gap-2 border-b-2 px-3 py-3 text-sm font-semibold transition sm:px-4 ${
+                    className={`inline-flex shrink-0 items-center gap-1.5 sm:gap-2 border-b-2 px-3 py-2.5 sm:px-4 sm:py-3 text-xs sm:text-sm font-semibold transition whitespace-nowrap ${
                       activeTab === id
                         ? 'border-blue-700 text-blue-700'
                         : 'border-transparent text-slate-500 hover:border-slate-300 hover:text-slate-800'
                     }`}
                   >
-                    <Icon size={17} />
+                    <Icon size={16} />
                     {label}
                   </button>
                 ))}
               </nav>
             </div>
 
-            <section className="mt-6">
+            {/* Tab Panels */}
+            <section className="mt-5 sm:mt-6">
               {activeTab === 'overview' && (
-                <div className="space-y-6">
-                  <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm sm:p-7">
-                    <div className="flex items-center gap-3">
-                      <div className="rounded-xl bg-blue-50 p-3 text-blue-700">
-                        <Building2 size={21} />
+                <div className="space-y-4 sm:space-y-6">
+                  {/* Company Details */}
+                  <div className="rounded-2xl border border-slate-200 bg-white p-4 sm:p-7 shadow-xs">
+                    <div className="flex items-center gap-2.5 sm:gap-3">
+                      <div className="rounded-xl bg-blue-50 p-2.5 sm:p-3 text-blue-700">
+                        <Building2 className="h-5 w-5 sm:h-6 sm:w-6" />
                       </div>
                       <div>
-                        <h3 className="font-bold">Company details</h3>
-                        <p className="text-sm text-slate-500">
+                        <h3 className="font-bold text-sm sm:text-base">Company details</h3>
+                        <p className="text-xs sm:text-sm text-slate-500">
                           Identity and registered information
                         </p>
                       </div>
                     </div>
 
-                    <div className="mt-6 grid gap-5 sm:grid-cols-2">
+                    <div className="mt-4 sm:mt-6 grid gap-4 sm:gap-5 grid-cols-1 sm:grid-cols-2">
                       <Field label="Company name" value={company.companyName} />
                       <Field label="CIN" value={company.CIN} />
                       <Field label="Incorporation date" value={company.incorporationDate} />
@@ -636,28 +724,29 @@ export default function App() {
                     </div>
                   </div>
 
+                  {/* Financials & Summary */}
                   <div className="grid gap-4 md:grid-cols-2">
-                    <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
-                      <h3 className="font-bold">Reported financial metrics</h3>
-                      <p className="mt-1 text-sm text-slate-500">
+                    <div className="rounded-2xl border border-slate-200 bg-white p-4 sm:p-5 shadow-xs">
+                      <h3 className="font-bold text-sm sm:text-base">Reported financial metrics</h3>
+                      <p className="mt-0.5 text-xs sm:text-sm text-slate-500">
                         Values returned by the extraction workflow
                       </p>
-                      <div className="mt-5 space-y-4">
-                        <div className="flex justify-between gap-4 border-b border-slate-100 pb-3">
-                          <span className="text-sm text-slate-600">Turnover</span>
-                          <strong className="text-right text-sm">{moneyOf(company.turnover)}</strong>
+                      <div className="mt-4 space-y-3.5">
+                        <div className="flex justify-between items-center gap-3 border-b border-slate-100 pb-2.5">
+                          <span className="text-xs sm:text-sm text-slate-600">Turnover</span>
+                          <strong className="text-right text-xs sm:text-sm font-semibold">{moneyOf(company.turnover)}</strong>
                         </div>
-                        <div className="flex justify-between gap-4">
-                          <span className="text-sm text-slate-600">Net worth</span>
-                          <strong className="text-right text-sm">{moneyOf(company.netWorth)}</strong>
+                        <div className="flex justify-between items-center gap-3">
+                          <span className="text-xs sm:text-sm text-slate-600">Net worth</span>
+                          <strong className="text-right text-xs sm:text-sm font-semibold">{moneyOf(company.netWorth)}</strong>
                         </div>
                       </div>
                     </div>
 
-                    <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
-                      <h3 className="font-bold">Extraction summary</h3>
-                      <div className="mt-5 space-y-3 text-sm">
-                        <div className="flex justify-between gap-3">
+                    <div className="rounded-2xl border border-slate-200 bg-white p-4 sm:p-5 shadow-xs">
+                      <h3 className="font-bold text-sm sm:text-base">Extraction summary</h3>
+                      <div className="mt-4 space-y-3 text-xs sm:text-sm">
+                        <div className="flex justify-between items-center gap-3">
                           <span className="text-slate-600">Subsidiary company</span>
                           <strong>
                             {data.isSubsidiaryCompany === undefined
@@ -667,15 +756,15 @@ export default function App() {
                                 : 'No'}
                           </strong>
                         </div>
-                        <div className="flex justify-between gap-3">
+                        <div className="flex justify-between items-center gap-3">
                           <span className="text-slate-600">Subsidiaries listed</span>
                           <strong>{numberOf(data.subsidiaries?.length ?? 0)}</strong>
                         </div>
-                        <div className="flex justify-between gap-3">
+                        <div className="flex justify-between items-center gap-3">
                           <span className="text-slate-600">Excel rows</span>
                           <strong>{numberOf(excelData.totalRows)}</strong>
                         </div>
-                        <div className="flex justify-between gap-3">
+                        <div className="flex justify-between items-center gap-3">
                           <span className="text-slate-600">Transaction types</span>
                           <strong>{numberOf(excelData.transactionTypesFound ?? transactions.length)}</strong>
                         </div>
@@ -683,9 +772,9 @@ export default function App() {
                     </div>
                   </div>
 
-                  <div className="flex items-start gap-3 rounded-xl border border-amber-200 bg-amber-50 p-4 text-sm text-amber-900">
-                    <CircleAlert size={19} className="mt-0.5 shrink-0" />
-                    <p>
+                  <div className="flex items-start gap-2.5 rounded-xl border border-amber-200 bg-amber-50 p-3.5 sm:p-4 text-xs sm:text-sm text-amber-900">
+                    <CircleAlert size={17} className="mt-0.5 shrink-0" />
+                    <p className="leading-relaxed">
                       Extracted information is not independently verified here.
                       “Not Found” does not necessarily mean the information
                       does not exist in other documents.
@@ -694,17 +783,19 @@ export default function App() {
                 </div>
               )}
 
+              {/* Directors Tab */}
               {activeTab === 'directors' && (
                 <div className="space-y-4">
-                  <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                  <div className="flex flex-col gap-2.5 sm:flex-row sm:items-center sm:justify-between">
                     <div>
-                      <h3 className="text-lg font-bold">Directors</h3>
-                      <p className="mt-1 text-sm text-slate-500">
-                        {directors.length} records
+                      <h3 className="text-base sm:text-lg font-bold">Directors</h3>
+                      <p className="text-xs sm:text-sm text-slate-500">
+                        {directors.length} records found
                       </p>
                     </div>
                     <SearchBox value={search} onChange={setSearch} placeholder="Search directors..." />
                   </div>
+
                   <DataTable
                     rows={filterRows(directors)}
                     emptyMessage="No directors match your search."
@@ -714,21 +805,51 @@ export default function App() {
                       { key: 'DIN', label: 'DIN' },
                       { key: 'address', label: 'Address' },
                     ]}
+                    renderMobileCard={(director, index) => (
+                      <div
+                        key={index}
+                        className="rounded-xl border border-slate-200 bg-white p-3.5 shadow-xs space-y-2.5"
+                      >
+                        <div className="flex items-start justify-between gap-2">
+                          <div className="min-w-0">
+                            <h4 className="font-bold text-sm text-slate-900 break-words">
+                              {valueOf(director.name, 'Unnamed Director')}
+                            </h4>
+                            <p className="text-xs font-mono text-slate-500 mt-0.5">
+                              DIN: {valueOf(director.DIN, '—')}
+                            </p>
+                          </div>
+                          <span className="shrink-0 rounded-full bg-blue-50 px-2.5 py-0.5 text-[11px] font-semibold text-blue-700">
+                            {valueOf(director.designation, 'Director')}
+                          </span>
+                        </div>
+                        {director.address && (
+                          <div className="pt-2 border-t border-slate-100 text-xs text-slate-600 break-words leading-relaxed">
+                            <span className="text-[10px] font-semibold uppercase text-slate-400 block mb-0.5">
+                              Address
+                            </span>
+                            {valueOf(director.address)}
+                          </div>
+                        )}
+                      </div>
+                    )}
                   />
                 </div>
               )}
 
+              {/* Shareholders Tab */}
               {activeTab === 'shareholders' && (
                 <div className="space-y-4">
-                  <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                  <div className="flex flex-col gap-2.5 sm:flex-row sm:items-center sm:justify-between">
                     <div>
-                      <h3 className="text-lg font-bold">Shareholders</h3>
-                      <p className="mt-1 text-sm text-slate-500">
-                        {shareholders.length} records
+                      <h3 className="text-base sm:text-lg font-bold">Shareholders</h3>
+                      <p className="text-xs sm:text-sm text-slate-500">
+                        {shareholders.length} records found
                       </p>
                     </div>
                     <SearchBox value={search} onChange={setSearch} placeholder="Search shareholders..." />
                   </div>
+
                   <DataTable
                     rows={filterRows(shareholders)}
                     emptyMessage="No shareholders match your search."
@@ -739,30 +860,58 @@ export default function App() {
                         key: 'shareholdingPercentage',
                         label: 'Shareholding',
                         render: (value) => (
-                          <span className="font-semibold">{valueOf(value, '—')}</span>
+                          <span className="font-semibold text-emerald-700">{valueOf(value, '—')}</span>
                         ),
                       },
                       { key: 'address', label: 'Address' },
                     ]}
+                    renderMobileCard={(holder, index) => (
+                      <div
+                        key={index}
+                        className="rounded-xl border border-slate-200 bg-white p-3.5 shadow-xs space-y-2.5"
+                      >
+                        <div className="flex items-start justify-between gap-2">
+                          <h4 className="font-bold text-sm text-slate-900 break-words min-w-0">
+                            {valueOf(holder.name, 'Shareholder')}
+                          </h4>
+                          <span className="shrink-0 rounded-full bg-emerald-50 px-2.5 py-0.5 text-[11px] font-bold text-emerald-700">
+                            {valueOf(holder.shareholdingPercentage, '—')}
+                          </span>
+                        </div>
+                        <div className="flex items-center gap-2 text-xs text-slate-600">
+                          <span className="text-slate-400">Total Shares:</span>
+                          <span className="font-semibold text-slate-800">{numberOf(holder.shares)}</span>
+                        </div>
+                        {holder.address && (
+                          <div className="pt-2 border-t border-slate-100 text-xs text-slate-600 break-words leading-relaxed">
+                            <span className="text-[10px] font-semibold uppercase text-slate-400 block mb-0.5">
+                              Address
+                            </span>
+                            {valueOf(holder.address)}
+                          </div>
+                        )}
+                      </div>
+                    )}
                   />
                 </div>
               )}
 
+              {/* Auditor Tab */}
               {activeTab === 'auditor' && (
-                <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm sm:p-7">
-                  <div className="flex items-center gap-3">
-                    <div className="rounded-xl bg-blue-50 p-3 text-blue-700">
-                      <ShieldCheck size={22} />
+                <div className="rounded-2xl border border-slate-200 bg-white p-4 sm:p-7 shadow-xs">
+                  <div className="flex items-center gap-2.5 sm:gap-3">
+                    <div className="rounded-xl bg-blue-50 p-2.5 sm:p-3 text-blue-700">
+                      <ShieldCheck className="h-5 w-5 sm:h-6 sm:w-6" />
                     </div>
                     <div>
-                      <h3 className="font-bold">Auditor details</h3>
-                      <p className="text-sm text-slate-500">
+                      <h3 className="font-bold text-sm sm:text-base">Auditor details</h3>
+                      <p className="text-xs sm:text-sm text-slate-500">
                         Information from the extracted report
                       </p>
                     </div>
                   </div>
 
-                  <div className="mt-6 grid gap-5 sm:grid-cols-2">
+                  <div className="mt-4 sm:mt-6 grid gap-4 sm:gap-5 grid-cols-1 sm:grid-cols-2">
                     <Field label="Audit firm" value={auditor.firmName} />
                     <Field label="Auditor PAN" value={auditor.PAN} />
                     <Field label="Individual auditor" value={auditor.individualAuditorName} />
@@ -772,13 +921,14 @@ export default function App() {
                 </div>
               )}
 
+              {/* Related Parties Tab */}
               {activeTab === 'related' && (
                 <div className="space-y-4">
-                  <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                  <div className="flex flex-col gap-2.5 sm:flex-row sm:items-center sm:justify-between">
                     <div>
-                      <h3 className="text-lg font-bold">Related parties</h3>
-                      <p className="mt-1 text-sm text-slate-500">
-                        {relatedParties.length} records
+                      <h3 className="text-base sm:text-lg font-bold">Related parties</h3>
+                      <p className="text-xs sm:text-sm text-slate-500">
+                        {relatedParties.length} records found
                       </p>
                     </div>
                     <SearchBox
@@ -801,42 +951,84 @@ export default function App() {
                       { key: 'amountPayable', label: 'Payable', render: moneyOf },
                       { key: 'amountReceivable', label: 'Receivable', render: moneyOf },
                     ]}
+                    renderMobileCard={(party, index) => (
+                      <div
+                        key={index}
+                        className="rounded-xl border border-slate-200 bg-white p-3.5 shadow-xs space-y-3"
+                      >
+                        <div className="flex items-start justify-between gap-2">
+                          <h4 className="font-bold text-sm text-slate-900 break-words min-w-0">
+                            {valueOf(party.name, 'Related Entity')}
+                          </h4>
+                          <span className="shrink-0 rounded-full bg-blue-50 px-2.5 py-0.5 text-[11px] font-semibold text-blue-700">
+                            {valueOf(party.relationship, 'Related Party')}
+                          </span>
+                        </div>
+
+                        <div className="grid grid-cols-2 gap-2 text-xs pt-1 border-t border-slate-100">
+                          <div className="bg-slate-50 p-2 rounded-lg">
+                            <span className="text-[10px] text-slate-500 block">Purchases</span>
+                            <span className="font-semibold text-slate-800">{moneyOf(party.purchases)}</span>
+                          </div>
+                          <div className="bg-slate-50 p-2 rounded-lg">
+                            <span className="text-[10px] text-slate-500 block">Sales</span>
+                            <span className="font-semibold text-slate-800">{moneyOf(party.sales)}</span>
+                          </div>
+                          <div className="bg-slate-50 p-2 rounded-lg">
+                            <span className="text-[10px] text-slate-500 block">Expenses</span>
+                            <span className="font-semibold text-slate-800">{moneyOf(party.expenses)}</span>
+                          </div>
+                          <div className="bg-slate-50 p-2 rounded-lg">
+                            <span className="text-[10px] text-slate-500 block">Contributions</span>
+                            <span className="font-semibold text-slate-800">{moneyOf(party.contributions)}</span>
+                          </div>
+                          <div className="bg-slate-50 p-2 rounded-lg">
+                            <span className="text-[10px] text-slate-500 block">Payable</span>
+                            <span className="font-semibold text-red-600">{moneyOf(party.amountPayable)}</span>
+                          </div>
+                          <div className="bg-slate-50 p-2 rounded-lg">
+                            <span className="text-[10px] text-slate-500 block">Receivable</span>
+                            <span className="font-semibold text-emerald-600">{moneyOf(party.amountReceivable)}</span>
+                          </div>
+                        </div>
+                      </div>
+                    )}
                   />
 
                   {transactions.length > 0 && (
-                    <details className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
-                      <summary className="cursor-pointer font-semibold">
+                    <details className="rounded-2xl border border-slate-200 bg-white p-3.5 sm:p-5 shadow-xs">
+                      <summary className="cursor-pointer font-semibold text-xs sm:text-sm select-none">
                         Detailed Excel transactions ({transactions.length} types)
                       </summary>
-                      <div className="mt-4 space-y-4">
+                      <div className="mt-3.5 sm:mt-4 space-y-3.5">
                         {transactions.map((transaction, index) => (
                           <div
                             key={`${transaction.xbrlTag || transaction.transactionType}-${index}`}
-                            className="rounded-xl border border-slate-200 p-4"
+                            className="rounded-xl border border-slate-200 p-3 sm:p-4 bg-slate-50/50"
                           >
-                            <h4 className="text-sm font-semibold">
+                            <h4 className="text-xs sm:text-sm font-semibold text-slate-800">
                               {valueOf(transaction.transactionType, transaction.xbrlTag)}
                             </h4>
-                            <div className="mt-3 overflow-x-auto">
-                              <table className="min-w-full text-left text-xs">
+                            <div className="mt-2.5 overflow-x-auto touch-scroll">
+                              <table className="min-w-full text-left text-[11px] sm:text-xs">
                                 <thead>
-                                  <tr className="text-slate-500">
-                                    <th className="py-2 pr-4">Related party</th>
-                                    <th className="py-2 pr-4">Financial year</th>
-                                    <th className="py-2 pr-4">Amount</th>
-                                    <th className="py-2">Mapping</th>
+                                  <tr className="text-slate-500 border-b border-slate-200">
+                                    <th className="py-1.5 pr-3 font-semibold">Related party</th>
+                                    <th className="py-1.5 pr-3 font-semibold">Financial year</th>
+                                    <th className="py-1.5 pr-3 font-semibold">Amount</th>
+                                    <th className="py-1.5 font-semibold">Mapping</th>
                                   </tr>
                                 </thead>
-                                <tbody>
+                                <tbody className="divide-y divide-slate-100">
                                   {(transaction.entries || []).map((entry, entryIndex) => (
                                     <tr
                                       key={`${entry.relatedParty}-${entry.financialYear}-${entryIndex}`}
-                                      className="border-t border-slate-100"
+                                      className="hover:bg-white/80"
                                     >
-                                      <td className="py-2 pr-4">{valueOf(entry.relatedParty, '—')}</td>
-                                      <td className="py-2 pr-4">{valueOf(entry.financialYear, '—')}</td>
-                                      <td className="py-2 pr-4">{moneyOf(entry.amount)}</td>
-                                      <td className="py-2">{valueOf(entry.mappingStatus, '—')}</td>
+                                      <td className="py-1.5 pr-3 text-slate-800">{valueOf(entry.relatedParty, '—')}</td>
+                                      <td className="py-1.5 pr-3 text-slate-600">{valueOf(entry.financialYear, '—')}</td>
+                                      <td className="py-1.5 pr-3 font-medium text-slate-900">{moneyOf(entry.amount)}</td>
+                                      <td className="py-1.5 text-slate-500">{valueOf(entry.mappingStatus, '—')}</td>
                                     </tr>
                                   ))}
                                 </tbody>
@@ -850,13 +1042,14 @@ export default function App() {
                 </div>
               )}
 
+              {/* Business Activities Tab */}
               {activeTab === 'activities' && (
                 <div className="space-y-4">
-                  <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                  <div className="flex flex-col gap-2.5 sm:flex-row sm:items-center sm:justify-between">
                     <div>
-                      <h3 className="text-lg font-bold">Business activities</h3>
-                      <p className="mt-1 text-sm text-slate-500">
-                        {activities.length} activity records
+                      <h3 className="text-base sm:text-lg font-bold">Business activities</h3>
+                      <p className="text-xs sm:text-sm text-slate-500">
+                        {activities.length} activity records found
                       </p>
                     </div>
                     <SearchBox
@@ -882,7 +1075,7 @@ export default function App() {
                           const verified = status.toLowerCase() === 'verified'
                           return (
                             <span
-                              className={`inline-flex rounded-full px-2.5 py-1 text-xs font-semibold ${
+                              className={`inline-flex rounded-full px-2.5 py-0.5 text-[11px] font-semibold ${
                                 verified
                                   ? 'bg-emerald-50 text-emerald-700'
                                   : 'bg-amber-50 text-amber-700'
@@ -894,19 +1087,64 @@ export default function App() {
                         },
                       },
                     ]}
+                    renderMobileCard={(activity, index) => {
+                      const status = valueOf(activity.descriptionVerificationStatus, 'Unknown')
+                      const verified = status.toLowerCase() === 'verified'
+                      return (
+                        <div
+                          key={index}
+                          className="rounded-xl border border-slate-200 bg-white p-3.5 shadow-xs space-y-2.5"
+                        >
+                          <div className="flex items-start justify-between gap-2">
+                            <span className="font-mono text-xs font-bold bg-slate-100 text-slate-800 px-2 py-0.5 rounded-md">
+                              Code: {valueOf(activity.activityCode4Digit, '—')}
+                            </span>
+                            <span
+                              className={`inline-flex rounded-full px-2 py-0.5 text-[11px] font-semibold ${
+                                verified
+                                  ? 'bg-emerald-50 text-emerald-700'
+                                  : 'bg-amber-50 text-amber-700'
+                              }`}
+                            >
+                              {status}
+                            </span>
+                          </div>
+
+                          <div className="text-xs leading-relaxed text-slate-800">
+                            <span className="text-[10px] font-semibold uppercase text-slate-400 block mb-0.5">
+                              Activity Definition
+                            </span>
+                            {valueOf(activity.activityCodeDefinition, '—')}
+                          </div>
+
+                          {(activity.itcCode8Digit || activity.itcCodeDescription) && (
+                            <div className="pt-2 border-t border-slate-100 text-xs text-slate-600 space-y-1">
+                              <div className="flex items-center gap-1.5">
+                                <span className="text-[10px] uppercase text-slate-400 font-semibold">ITC Code:</span>
+                                <span className="font-mono font-medium text-slate-800">{valueOf(activity.itcCode8Digit, '—')}</span>
+                              </div>
+                              <p className="text-[11px] text-slate-500 leading-snug">
+                                {valueOf(activity.itcCodeDescription, '—')}
+                              </p>
+                            </div>
+                          )}
+                        </div>
+                      )
+                    }}
                   />
                 </div>
               )}
             </section>
 
-            <section className="mt-8 flex flex-col gap-3 rounded-2xl border border-slate-200 bg-white p-5 sm:flex-row sm:items-center sm:justify-between">
-              <div className="flex items-start gap-3">
-                <div className="rounded-xl bg-slate-100 p-3 text-slate-700">
-                  <FileJson size={21} />
+            {/* Bottom Download Banner */}
+            <section className="mt-6 sm:mt-8 flex flex-col gap-3 rounded-2xl border border-slate-200 bg-white p-4 sm:p-5 sm:flex-row sm:items-center sm:justify-between shadow-xs">
+              <div className="flex items-start gap-2.5 sm:gap-3">
+                <div className="rounded-xl bg-slate-100 p-2.5 sm:p-3 text-slate-700 shrink-0">
+                  <FileJson className="h-5 w-5 sm:h-5.5 sm:w-5.5" />
                 </div>
                 <div>
-                  <h3 className="font-semibold">Download the full report</h3>
-                  <p className="mt-1 text-sm text-slate-500">
+                  <h3 className="font-semibold text-xs sm:text-sm">Download the full report</h3>
+                  <p className="mt-0.5 text-xs text-slate-500 leading-relaxed">
                     Includes the complete JSON response, even fields not shown in these tables.
                   </p>
                 </div>
@@ -914,9 +1152,9 @@ export default function App() {
               <button
                 type="button"
                 onClick={() => downloadJSON(report)}
-                className="inline-flex items-center justify-center gap-2 rounded-xl bg-slate-900 px-4 py-3 text-sm font-semibold text-white hover:bg-slate-800"
+                className="w-full sm:w-auto inline-flex items-center justify-center gap-2 rounded-xl bg-slate-900 px-4 py-2.5 sm:py-3 text-xs sm:text-sm font-semibold text-white shadow-xs hover:bg-slate-800 active:scale-[0.99] transition shrink-0"
               >
-                <Download size={17} />
+                <Download size={16} />
                 Download JSON
               </button>
             </section>
@@ -924,8 +1162,9 @@ export default function App() {
         )}
       </main>
 
-      <footer className="border-t border-slate-200 bg-white">
-        <div className="mx-auto flex max-w-7xl flex-col gap-2 px-4 py-5 text-xs text-slate-500 sm:flex-row sm:items-center sm:justify-between sm:px-6">
+      {/* Footer */}
+      <footer className="border-t border-slate-200 bg-white mt-auto">
+        <div className="mx-auto flex max-w-7xl flex-col gap-1.5 px-3.5 py-4 text-center sm:text-left text-[11px] sm:text-xs text-slate-500 sm:flex-row sm:items-center sm:justify-between sm:px-6">
           <p>FileScope AI · Company Filing Analyzer</p>
           <p>Verify extracted information against original source documents.</p>
         </div>
