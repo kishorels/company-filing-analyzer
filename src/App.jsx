@@ -20,6 +20,8 @@ import {
   FileJson,
   Layers,
   Table as TableIcon,
+  Copy,
+  Check,
 } from 'lucide-react'
 
 const WEBHOOK_URL =
@@ -110,13 +112,90 @@ function downloadJSON(report) {
   URL.revokeObjectURL(url)
 }
 
+/**
+ * Reusable CopyButton that displays a clean Copy icon,
+ * and turns into a green Check with "Copied!" for 2 seconds.
+ */
+function CopyButton({ text, label = 'value', className = '' }) {
+  const [copied, setCopied] = useState(false)
+
+  if (
+    text === null ||
+    text === undefined ||
+    text === '' ||
+    text === 'Not Found' ||
+    text === '—' ||
+    text === 'Unknown'
+  ) {
+    return null
+  }
+
+  const handleCopy = async (e) => {
+    e.preventDefault()
+    e.stopPropagation()
+    const str = typeof text === 'object' ? JSON.stringify(text) : String(text)
+
+    try {
+      if (navigator?.clipboard?.writeText) {
+        await navigator.clipboard.writeText(str)
+      } else {
+        throw new Error('Clipboard API not available')
+      }
+    } catch {
+      // Fallback for older browsers or non-secure contexts
+      const textarea = document.createElement('textarea')
+      textarea.value = str
+      textarea.style.position = 'fixed'
+      textarea.style.opacity = '0'
+      document.body.appendChild(textarea)
+      textarea.focus()
+      textarea.select()
+      try {
+        document.execCommand('copy')
+      } catch (err) {
+        console.error('Copy fallback failed:', err)
+      }
+      textarea.remove()
+    }
+
+    setCopied(true)
+    setTimeout(() => setCopied(false), 2000)
+  }
+
+  return (
+    <button
+      type="button"
+      onClick={handleCopy}
+      title={copied ? 'Copied to clipboard!' : `Copy ${label}`}
+      aria-label={copied ? 'Copied' : `Copy ${label}`}
+      className={`inline-flex shrink-0 items-center gap-1 rounded-md px-1.5 py-0.5 text-xs font-medium transition-all active:scale-95 ${
+        copied
+          ? 'bg-emerald-100 text-emerald-800 ring-1 ring-emerald-300'
+          : 'text-slate-400 hover:bg-slate-100 hover:text-slate-700'
+      } ${className}`}
+    >
+      {copied ? (
+        <>
+          <Check size={12} className="text-emerald-700 stroke-[2.5]" />
+          <span className="text-[10px] font-bold text-emerald-700">Copied!</span>
+        </>
+      ) : (
+        <Copy size={12} className="stroke-[2]" />
+      )}
+    </button>
+  )
+}
+
 function StatCard({ label, value, icon: Icon }) {
   return (
     <div className="rounded-2xl border border-slate-200 bg-white p-3.5 sm:p-5 shadow-xs transition hover:shadow-sm">
       <div className="flex items-start justify-between gap-2 sm:gap-3">
         <div className="min-w-0">
           <p className="truncate text-xs sm:text-sm font-medium text-slate-500">{label}</p>
-          <p className="mt-1 sm:mt-2 text-xl sm:text-2xl font-bold tracking-tight text-slate-950">{value}</p>
+          <div className="flex items-center gap-1.5 mt-1 sm:mt-2">
+            <p className="text-xl sm:text-2xl font-bold tracking-tight text-slate-950">{value}</p>
+            <CopyButton text={value} label={label} />
+          </div>
         </div>
         <div className="shrink-0 rounded-xl bg-blue-50 p-2 sm:p-3 text-blue-700">
           <Icon className="h-4 w-4 sm:h-5 sm:w-5" />
@@ -127,13 +206,22 @@ function StatCard({ label, value, icon: Icon }) {
 }
 
 function Field({ label, value, wide = false }) {
+  const displayVal = valueOf(value)
+
   return (
-    <div className={wide ? 'sm:col-span-2' : ''}>
-      <p className="text-[11px] sm:text-xs font-semibold uppercase tracking-wider text-slate-500">
-        {label}
-      </p>
-      <p className="mt-1 break-words text-xs sm:text-sm leading-relaxed text-slate-800">
-        {valueOf(value)}
+    <div
+      className={`group rounded-xl border border-transparent p-2 transition hover:border-slate-200 hover:bg-slate-50/70 ${
+        wide ? 'sm:col-span-2' : ''
+      }`}
+    >
+      <div className="flex items-center justify-between gap-2">
+        <p className="text-[11px] sm:text-xs font-semibold uppercase tracking-wider text-slate-500">
+          {label}
+        </p>
+        <CopyButton text={displayVal} label={label} />
+      </div>
+      <p className="mt-1 break-words text-xs sm:text-sm leading-relaxed text-slate-800 font-medium">
+        {displayVal}
       </p>
     </div>
   )
@@ -164,6 +252,19 @@ function EmptyState({ message }) {
       <p className="mt-1 text-xs sm:text-sm text-slate-500">{message}</p>
     </div>
   )
+}
+
+function getCopyText(row, column) {
+  if (column.copyValue) return column.copyValue(row[column.key], row)
+  const val = row[column.key]
+  if (val === null || val === undefined || val === '') return ''
+  if (column.render && typeof column.render === 'function') {
+    const rendered = column.render(val, row)
+    if (typeof rendered === 'string' || typeof rendered === 'number') {
+      return String(rendered)
+    }
+  }
+  return typeof val === 'object' ? JSON.stringify(val) : String(val)
 }
 
 function DataTable({ rows, columns, emptyMessage, renderMobileCard }) {
@@ -219,25 +320,32 @@ function DataTable({ rows, columns, emptyMessage, renderMobileCard }) {
                 key={index}
                 className="rounded-xl border border-slate-200 bg-white p-3.5 shadow-xs space-y-2"
               >
-                {columns.map((column) => (
-                  <div key={column.key} className="flex flex-col text-xs">
-                    <span className="text-[10px] font-semibold uppercase text-slate-400">
-                      {column.label}
-                    </span>
-                    <span className="mt-0.5 text-slate-800 break-words">
-                      {column.render
-                        ? column.render(row[column.key], row)
-                        : valueOf(row[column.key], '—')}
-                    </span>
-                  </div>
-                ))}
+                {columns.map((column) => {
+                  const val = column.render
+                    ? column.render(row[column.key], row)
+                    : valueOf(row[column.key], '—')
+                  const copyVal = getCopyText(row, column)
+                  return (
+                    <div key={column.key} className="flex flex-col text-xs">
+                      <div className="flex items-center justify-between gap-1">
+                        <span className="text-[10px] font-semibold uppercase text-slate-400">
+                          {column.label}
+                        </span>
+                        <CopyButton text={copyVal} label={column.label} />
+                      </div>
+                      <span className="mt-0.5 text-slate-800 break-words font-medium">
+                        {val}
+                      </span>
+                    </div>
+                  )
+                })}
               </div>
             )
           )}
         </div>
       )}
 
-      {/* Table (always visible on >= sm, visible on mobile only when mobileView === 'table') */}
+      {/* Table view with per-cell CopyButton */}
       <div
         className={`${
           mobileView === 'cards' ? 'hidden sm:block' : 'block'
@@ -267,16 +375,28 @@ function DataTable({ rows, columns, emptyMessage, renderMobileCard }) {
             <tbody className="divide-y divide-slate-100">
               {rows.map((row, index) => (
                 <tr key={index} className="align-top hover:bg-slate-50/80 transition-colors">
-                  {columns.map((column) => (
-                    <td
-                      key={column.key}
-                      className="max-w-xs px-3.5 py-2.5 sm:px-4 sm:py-3 leading-relaxed text-slate-700"
-                    >
-                      {column.render
-                        ? column.render(row[column.key], row)
-                        : valueOf(row[column.key], '—')}
-                    </td>
-                  ))}
+                  {columns.map((column) => {
+                    const copyVal = getCopyText(row, column)
+                    return (
+                      <td
+                        key={column.key}
+                        className="max-w-xs px-3.5 py-2.5 sm:px-4 sm:py-3 leading-relaxed text-slate-700"
+                      >
+                        <div className="flex items-center justify-between gap-1.5 group/cell">
+                          <span className="min-w-0 break-words">
+                            {column.render
+                              ? column.render(row[column.key], row)
+                              : valueOf(row[column.key], '—')}
+                          </span>
+                          <CopyButton
+                            text={copyVal}
+                            label={column.label}
+                            className="opacity-70 group-hover/cell:opacity-100 sm:opacity-0 sm:group-hover/cell:opacity-100 transition-opacity"
+                          />
+                        </div>
+                      </td>
+                    )
+                  })}
                 </tr>
               ))}
             </tbody>
@@ -598,7 +718,7 @@ export default function App() {
 
         {report && data && (
           <>
-            {/* Report Header */}
+            {/* Report Header with Copy Buttons */}
             <section className="flex flex-col gap-4 sm:gap-5 lg:flex-row lg:items-end lg:justify-between">
               <div className="min-w-0">
                 <button
@@ -620,13 +740,23 @@ export default function App() {
                   Report generated
                 </div>
 
-                <h2 className="mt-1.5 break-words text-xl sm:text-3xl font-bold tracking-tight text-slate-950">
-                  {valueOf(company.companyName, 'Company filing report')}
-                </h2>
-                <div className="mt-1.5 flex flex-wrap items-center gap-x-2.5 gap-y-1 text-xs sm:text-sm text-slate-500">
-                  <span>CIN: <strong className="font-medium text-slate-700">{valueOf(company.CIN)}</strong></span>
-                  <span className="hidden xs:inline">·</span>
-                  <span>Incorporated: <strong className="font-medium text-slate-700">{valueOf(company.incorporationDate)}</strong></span>
+                <div className="mt-1.5 flex items-center gap-2 flex-wrap">
+                  <h2 className="break-words text-xl sm:text-3xl font-bold tracking-tight text-slate-950">
+                    {valueOf(company.companyName, 'Company filing report')}
+                  </h2>
+                  <CopyButton text={company.companyName} label="Company Name" />
+                </div>
+
+                <div className="mt-1.5 flex flex-wrap items-center gap-x-3 gap-y-1 text-xs sm:text-sm text-slate-500">
+                  <div className="inline-flex items-center gap-1">
+                    <span>CIN: <strong className="font-medium text-slate-700">{valueOf(company.CIN)}</strong></span>
+                    <CopyButton text={company.CIN} label="CIN" />
+                  </div>
+                  <span className="hidden xs:inline text-slate-300">·</span>
+                  <div className="inline-flex items-center gap-1">
+                    <span>Incorporated: <strong className="font-medium text-slate-700">{valueOf(company.incorporationDate)}</strong></span>
+                    <CopyButton text={company.incorporationDate} label="Incorporation Date" />
+                  </div>
                 </div>
               </div>
 
@@ -704,12 +834,12 @@ export default function App() {
                       <div>
                         <h3 className="font-bold text-sm sm:text-base">Company details</h3>
                         <p className="text-xs sm:text-sm text-slate-500">
-                          Identity and registered information
+                          Identity and registered information (click Copy icon to copy any field)
                         </p>
                       </div>
                     </div>
 
-                    <div className="mt-4 sm:mt-6 grid gap-4 sm:gap-5 grid-cols-1 sm:grid-cols-2">
+                    <div className="mt-4 sm:mt-6 grid gap-3 sm:gap-5 grid-cols-1 sm:grid-cols-2">
                       <Field label="Company name" value={company.companyName} />
                       <Field label="CIN" value={company.CIN} />
                       <Field label="Incorporation date" value={company.incorporationDate} />
@@ -734,11 +864,21 @@ export default function App() {
                       <div className="mt-4 space-y-3.5">
                         <div className="flex justify-between items-center gap-3 border-b border-slate-100 pb-2.5">
                           <span className="text-xs sm:text-sm text-slate-600">Turnover</span>
-                          <strong className="text-right text-xs sm:text-sm font-semibold">{moneyOf(company.turnover)}</strong>
+                          <div className="inline-flex items-center gap-1.5">
+                            <strong className="text-right text-xs sm:text-sm font-semibold">
+                              {moneyOf(company.turnover)}
+                            </strong>
+                            <CopyButton text={moneyOf(company.turnover)} label="Turnover" />
+                          </div>
                         </div>
                         <div className="flex justify-between items-center gap-3">
                           <span className="text-xs sm:text-sm text-slate-600">Net worth</span>
-                          <strong className="text-right text-xs sm:text-sm font-semibold">{moneyOf(company.netWorth)}</strong>
+                          <div className="inline-flex items-center gap-1.5">
+                            <strong className="text-right text-xs sm:text-sm font-semibold">
+                              {moneyOf(company.netWorth)}
+                            </strong>
+                            <CopyButton text={moneyOf(company.netWorth)} label="Net Worth" />
+                          </div>
                         </div>
                       </div>
                     </div>
@@ -748,25 +888,46 @@ export default function App() {
                       <div className="mt-4 space-y-3 text-xs sm:text-sm">
                         <div className="flex justify-between items-center gap-3">
                           <span className="text-slate-600">Subsidiary company</span>
-                          <strong>
-                            {data.isSubsidiaryCompany === undefined
-                              ? 'Not Found'
-                              : data.isSubsidiaryCompany
-                                ? 'Yes'
-                                : 'No'}
-                          </strong>
+                          <div className="inline-flex items-center gap-1.5">
+                            <strong>
+                              {data.isSubsidiaryCompany === undefined
+                                ? 'Not Found'
+                                : data.isSubsidiaryCompany
+                                  ? 'Yes'
+                                  : 'No'}
+                            </strong>
+                            <CopyButton
+                              text={
+                                data.isSubsidiaryCompany === undefined
+                                  ? 'Not Found'
+                                  : data.isSubsidiaryCompany
+                                    ? 'Yes'
+                                    : 'No'
+                              }
+                              label="Subsidiary Status"
+                            />
+                          </div>
                         </div>
                         <div className="flex justify-between items-center gap-3">
                           <span className="text-slate-600">Subsidiaries listed</span>
-                          <strong>{numberOf(data.subsidiaries?.length ?? 0)}</strong>
+                          <div className="inline-flex items-center gap-1.5">
+                            <strong>{numberOf(data.subsidiaries?.length ?? 0)}</strong>
+                            <CopyButton text={numberOf(data.subsidiaries?.length ?? 0)} label="Subsidiaries count" />
+                          </div>
                         </div>
                         <div className="flex justify-between items-center gap-3">
                           <span className="text-slate-600">Excel rows</span>
-                          <strong>{numberOf(excelData.totalRows)}</strong>
+                          <div className="inline-flex items-center gap-1.5">
+                            <strong>{numberOf(excelData.totalRows)}</strong>
+                            <CopyButton text={numberOf(excelData.totalRows)} label="Excel rows count" />
+                          </div>
                         </div>
                         <div className="flex justify-between items-center gap-3">
                           <span className="text-slate-600">Transaction types</span>
-                          <strong>{numberOf(excelData.transactionTypesFound ?? transactions.length)}</strong>
+                          <div className="inline-flex items-center gap-1.5">
+                            <strong>{numberOf(excelData.transactionTypesFound ?? transactions.length)}</strong>
+                            <CopyButton text={numberOf(excelData.transactionTypesFound ?? transactions.length)} label="Transaction types count" />
+                          </div>
                         </div>
                       </div>
                     </div>
@@ -812,22 +973,34 @@ export default function App() {
                       >
                         <div className="flex items-start justify-between gap-2">
                           <div className="min-w-0">
-                            <h4 className="font-bold text-sm text-slate-900 break-words">
-                              {valueOf(director.name, 'Unnamed Director')}
-                            </h4>
-                            <p className="text-xs font-mono text-slate-500 mt-0.5">
-                              DIN: {valueOf(director.DIN, '—')}
-                            </p>
+                            <div className="flex items-center gap-1.5 flex-wrap">
+                              <h4 className="font-bold text-sm text-slate-900 break-words">
+                                {valueOf(director.name, 'Unnamed Director')}
+                              </h4>
+                              <CopyButton text={director.name} label="Name" />
+                            </div>
+                            <div className="flex items-center gap-1.5 mt-0.5">
+                              <p className="text-xs font-mono text-slate-500">
+                                DIN: {valueOf(director.DIN, '—')}
+                              </p>
+                              <CopyButton text={director.DIN} label="DIN" />
+                            </div>
                           </div>
-                          <span className="shrink-0 rounded-full bg-blue-50 px-2.5 py-0.5 text-[11px] font-semibold text-blue-700">
-                            {valueOf(director.designation, 'Director')}
-                          </span>
+                          <div className="flex items-center gap-1 shrink-0">
+                            <span className="rounded-full bg-blue-50 px-2.5 py-0.5 text-[11px] font-semibold text-blue-700">
+                              {valueOf(director.designation, 'Director')}
+                            </span>
+                            <CopyButton text={director.designation} label="Designation" />
+                          </div>
                         </div>
                         {director.address && (
                           <div className="pt-2 border-t border-slate-100 text-xs text-slate-600 break-words leading-relaxed">
-                            <span className="text-[10px] font-semibold uppercase text-slate-400 block mb-0.5">
-                              Address
-                            </span>
+                            <div className="flex items-center justify-between gap-1 mb-0.5">
+                              <span className="text-[10px] font-semibold uppercase text-slate-400">
+                                Address
+                              </span>
+                              <CopyButton text={director.address} label="Address" />
+                            </div>
                             {valueOf(director.address)}
                           </div>
                         )}
@@ -871,22 +1044,34 @@ export default function App() {
                         className="rounded-xl border border-slate-200 bg-white p-3.5 shadow-xs space-y-2.5"
                       >
                         <div className="flex items-start justify-between gap-2">
-                          <h4 className="font-bold text-sm text-slate-900 break-words min-w-0">
-                            {valueOf(holder.name, 'Shareholder')}
-                          </h4>
-                          <span className="shrink-0 rounded-full bg-emerald-50 px-2.5 py-0.5 text-[11px] font-bold text-emerald-700">
-                            {valueOf(holder.shareholdingPercentage, '—')}
-                          </span>
+                          <div className="flex items-center gap-1.5 flex-wrap min-w-0">
+                            <h4 className="font-bold text-sm text-slate-900 break-words">
+                              {valueOf(holder.name, 'Shareholder')}
+                            </h4>
+                            <CopyButton text={holder.name} label="Name" />
+                          </div>
+                          <div className="flex items-center gap-1 shrink-0">
+                            <span className="rounded-full bg-emerald-50 px-2.5 py-0.5 text-[11px] font-bold text-emerald-700">
+                              {valueOf(holder.shareholdingPercentage, '—')}
+                            </span>
+                            <CopyButton text={holder.shareholdingPercentage} label="Shareholding" />
+                          </div>
                         </div>
-                        <div className="flex items-center gap-2 text-xs text-slate-600">
+                        <div className="flex items-center justify-between text-xs text-slate-600">
                           <span className="text-slate-400">Total Shares:</span>
-                          <span className="font-semibold text-slate-800">{numberOf(holder.shares)}</span>
+                          <div className="inline-flex items-center gap-1">
+                            <span className="font-semibold text-slate-800">{numberOf(holder.shares)}</span>
+                            <CopyButton text={holder.shares} label="Shares" />
+                          </div>
                         </div>
                         {holder.address && (
                           <div className="pt-2 border-t border-slate-100 text-xs text-slate-600 break-words leading-relaxed">
-                            <span className="text-[10px] font-semibold uppercase text-slate-400 block mb-0.5">
-                              Address
-                            </span>
+                            <div className="flex items-center justify-between gap-1 mb-0.5">
+                              <span className="text-[10px] font-semibold uppercase text-slate-400">
+                                Address
+                              </span>
+                              <CopyButton text={holder.address} label="Address" />
+                            </div>
                             {valueOf(holder.address)}
                           </div>
                         )}
@@ -906,12 +1091,12 @@ export default function App() {
                     <div>
                       <h3 className="font-bold text-sm sm:text-base">Auditor details</h3>
                       <p className="text-xs sm:text-sm text-slate-500">
-                        Information from the extracted report
+                        Information from the extracted report (click Copy icon to copy any field)
                       </p>
                     </div>
                   </div>
 
-                  <div className="mt-4 sm:mt-6 grid gap-4 sm:gap-5 grid-cols-1 sm:grid-cols-2">
+                  <div className="mt-4 sm:mt-6 grid gap-3 sm:gap-5 grid-cols-1 sm:grid-cols-2">
                     <Field label="Audit firm" value={auditor.firmName} />
                     <Field label="Auditor PAN" value={auditor.PAN} />
                     <Field label="Individual auditor" value={auditor.individualAuditorName} />
@@ -957,39 +1142,37 @@ export default function App() {
                         className="rounded-xl border border-slate-200 bg-white p-3.5 shadow-xs space-y-3"
                       >
                         <div className="flex items-start justify-between gap-2">
-                          <h4 className="font-bold text-sm text-slate-900 break-words min-w-0">
-                            {valueOf(party.name, 'Related Entity')}
-                          </h4>
-                          <span className="shrink-0 rounded-full bg-blue-50 px-2.5 py-0.5 text-[11px] font-semibold text-blue-700">
-                            {valueOf(party.relationship, 'Related Party')}
-                          </span>
+                          <div className="flex items-center gap-1.5 flex-wrap min-w-0">
+                            <h4 className="font-bold text-sm text-slate-900 break-words">
+                              {valueOf(party.name, 'Related Entity')}
+                            </h4>
+                            <CopyButton text={party.name} label="Entity Name" />
+                          </div>
+                          <div className="flex items-center gap-1 shrink-0">
+                            <span className="rounded-full bg-blue-50 px-2.5 py-0.5 text-[11px] font-semibold text-blue-700">
+                              {valueOf(party.relationship, 'Related Party')}
+                            </span>
+                            <CopyButton text={party.relationship} label="Relationship" />
+                          </div>
                         </div>
 
                         <div className="grid grid-cols-2 gap-2 text-xs pt-1 border-t border-slate-100">
-                          <div className="bg-slate-50 p-2 rounded-lg">
-                            <span className="text-[10px] text-slate-500 block">Purchases</span>
-                            <span className="font-semibold text-slate-800">{moneyOf(party.purchases)}</span>
-                          </div>
-                          <div className="bg-slate-50 p-2 rounded-lg">
-                            <span className="text-[10px] text-slate-500 block">Sales</span>
-                            <span className="font-semibold text-slate-800">{moneyOf(party.sales)}</span>
-                          </div>
-                          <div className="bg-slate-50 p-2 rounded-lg">
-                            <span className="text-[10px] text-slate-500 block">Expenses</span>
-                            <span className="font-semibold text-slate-800">{moneyOf(party.expenses)}</span>
-                          </div>
-                          <div className="bg-slate-50 p-2 rounded-lg">
-                            <span className="text-[10px] text-slate-500 block">Contributions</span>
-                            <span className="font-semibold text-slate-800">{moneyOf(party.contributions)}</span>
-                          </div>
-                          <div className="bg-slate-50 p-2 rounded-lg">
-                            <span className="text-[10px] text-slate-500 block">Payable</span>
-                            <span className="font-semibold text-red-600">{moneyOf(party.amountPayable)}</span>
-                          </div>
-                          <div className="bg-slate-50 p-2 rounded-lg">
-                            <span className="text-[10px] text-slate-500 block">Receivable</span>
-                            <span className="font-semibold text-emerald-600">{moneyOf(party.amountReceivable)}</span>
-                          </div>
+                          {[
+                            ['Purchases', moneyOf(party.purchases), 'text-slate-800'],
+                            ['Sales', moneyOf(party.sales), 'text-slate-800'],
+                            ['Expenses', moneyOf(party.expenses), 'text-slate-800'],
+                            ['Contributions', moneyOf(party.contributions), 'text-slate-800'],
+                            ['Payable', moneyOf(party.amountPayable), 'text-red-600'],
+                            ['Receivable', moneyOf(party.amountReceivable), 'text-emerald-600'],
+                          ].map(([lbl, amt, colClass]) => (
+                            <div key={lbl} className="bg-slate-50 p-2 rounded-lg flex flex-col justify-between">
+                              <div className="flex items-center justify-between gap-1">
+                                <span className="text-[10px] text-slate-500">{lbl}</span>
+                                <CopyButton text={amt} label={lbl} />
+                              </div>
+                              <span className={`font-semibold mt-0.5 ${colClass}`}>{amt}</span>
+                            </div>
+                          ))}
                         </div>
                       </div>
                     )}
@@ -1006,9 +1189,15 @@ export default function App() {
                             key={`${transaction.xbrlTag || transaction.transactionType}-${index}`}
                             className="rounded-xl border border-slate-200 p-3 sm:p-4 bg-slate-50/50"
                           >
-                            <h4 className="text-xs sm:text-sm font-semibold text-slate-800">
-                              {valueOf(transaction.transactionType, transaction.xbrlTag)}
-                            </h4>
+                            <div className="flex items-center justify-between gap-2">
+                              <h4 className="text-xs sm:text-sm font-semibold text-slate-800">
+                                {valueOf(transaction.transactionType, transaction.xbrlTag)}
+                              </h4>
+                              <CopyButton
+                                text={valueOf(transaction.transactionType, transaction.xbrlTag)}
+                                label="Transaction Type"
+                              />
+                            </div>
                             <div className="mt-2.5 overflow-x-auto touch-scroll">
                               <table className="min-w-full text-left text-[11px] sm:text-xs">
                                 <thead>
@@ -1025,10 +1214,30 @@ export default function App() {
                                       key={`${entry.relatedParty}-${entry.financialYear}-${entryIndex}`}
                                       className="hover:bg-white/80"
                                     >
-                                      <td className="py-1.5 pr-3 text-slate-800">{valueOf(entry.relatedParty, '—')}</td>
-                                      <td className="py-1.5 pr-3 text-slate-600">{valueOf(entry.financialYear, '—')}</td>
-                                      <td className="py-1.5 pr-3 font-medium text-slate-900">{moneyOf(entry.amount)}</td>
-                                      <td className="py-1.5 text-slate-500">{valueOf(entry.mappingStatus, '—')}</td>
+                                      <td className="py-1.5 pr-3 text-slate-800">
+                                        <div className="flex items-center justify-between gap-1">
+                                          <span>{valueOf(entry.relatedParty, '—')}</span>
+                                          <CopyButton text={entry.relatedParty} label="Party" />
+                                        </div>
+                                      </td>
+                                      <td className="py-1.5 pr-3 text-slate-600">
+                                        <div className="flex items-center justify-between gap-1">
+                                          <span>{valueOf(entry.financialYear, '—')}</span>
+                                          <CopyButton text={entry.financialYear} label="Year" />
+                                        </div>
+                                      </td>
+                                      <td className="py-1.5 pr-3 font-medium text-slate-900">
+                                        <div className="flex items-center justify-between gap-1">
+                                          <span>{moneyOf(entry.amount)}</span>
+                                          <CopyButton text={moneyOf(entry.amount)} label="Amount" />
+                                        </div>
+                                      </td>
+                                      <td className="py-1.5 text-slate-500">
+                                        <div className="flex items-center justify-between gap-1">
+                                          <span>{valueOf(entry.mappingStatus, '—')}</span>
+                                          <CopyButton text={entry.mappingStatus} label="Mapping" />
+                                        </div>
+                                      </td>
                                     </tr>
                                   ))}
                                 </tbody>
@@ -1096,36 +1305,51 @@ export default function App() {
                           className="rounded-xl border border-slate-200 bg-white p-3.5 shadow-xs space-y-2.5"
                         >
                           <div className="flex items-start justify-between gap-2">
-                            <span className="font-mono text-xs font-bold bg-slate-100 text-slate-800 px-2 py-0.5 rounded-md">
-                              Code: {valueOf(activity.activityCode4Digit, '—')}
-                            </span>
-                            <span
-                              className={`inline-flex rounded-full px-2 py-0.5 text-[11px] font-semibold ${
-                                verified
-                                  ? 'bg-emerald-50 text-emerald-700'
-                                  : 'bg-amber-50 text-amber-700'
-                              }`}
-                            >
-                              {status}
-                            </span>
+                            <div className="flex items-center gap-1">
+                              <span className="font-mono text-xs font-bold bg-slate-100 text-slate-800 px-2 py-0.5 rounded-md">
+                                Code: {valueOf(activity.activityCode4Digit, '—')}
+                              </span>
+                              <CopyButton text={activity.activityCode4Digit} label="Activity Code" />
+                            </div>
+                            <div className="flex items-center gap-1">
+                              <span
+                                className={`inline-flex rounded-full px-2 py-0.5 text-[11px] font-semibold ${
+                                  verified
+                                    ? 'bg-emerald-50 text-emerald-700'
+                                    : 'bg-amber-50 text-amber-700'
+                                }`}
+                              >
+                                {status}
+                              </span>
+                              <CopyButton text={status} label="Status" />
+                            </div>
                           </div>
 
                           <div className="text-xs leading-relaxed text-slate-800">
-                            <span className="text-[10px] font-semibold uppercase text-slate-400 block mb-0.5">
-                              Activity Definition
-                            </span>
+                            <div className="flex items-center justify-between gap-1 mb-0.5">
+                              <span className="text-[10px] font-semibold uppercase text-slate-400">
+                                Activity Definition
+                              </span>
+                              <CopyButton text={activity.activityCodeDefinition} label="Activity Definition" />
+                            </div>
                             {valueOf(activity.activityCodeDefinition, '—')}
                           </div>
 
                           {(activity.itcCode8Digit || activity.itcCodeDescription) && (
                             <div className="pt-2 border-t border-slate-100 text-xs text-slate-600 space-y-1">
-                              <div className="flex items-center gap-1.5">
-                                <span className="text-[10px] uppercase text-slate-400 font-semibold">ITC Code:</span>
-                                <span className="font-mono font-medium text-slate-800">{valueOf(activity.itcCode8Digit, '—')}</span>
+                              <div className="flex items-center justify-between gap-1">
+                                <div className="flex items-center gap-1.5">
+                                  <span className="text-[10px] uppercase text-slate-400 font-semibold">ITC Code:</span>
+                                  <span className="font-mono font-medium text-slate-800">{valueOf(activity.itcCode8Digit, '—')}</span>
+                                </div>
+                                <CopyButton text={activity.itcCode8Digit} label="ITC Code" />
                               </div>
-                              <p className="text-[11px] text-slate-500 leading-snug">
-                                {valueOf(activity.itcCodeDescription, '—')}
-                              </p>
+                              <div className="flex items-start justify-between gap-1">
+                                <p className="text-[11px] text-slate-500 leading-snug">
+                                  {valueOf(activity.itcCodeDescription, '—')}
+                                </p>
+                                <CopyButton text={activity.itcCodeDescription} label="ITC Description" />
+                              </div>
                             </div>
                           )}
                         </div>
