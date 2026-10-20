@@ -58,10 +58,10 @@ function moneyOf(value) {
   const n = Number(value)
   return Number.isFinite(n)
     ? new Intl.NumberFormat('en-IN', {
-        style: 'currency',
-        currency: 'INR',
-        maximumFractionDigits: 0,
-      }).format(n)
+      style: 'currency',
+      currency: 'INR',
+      maximumFractionDigits: 0,
+    }).format(n)
     : String(value)
 }
 
@@ -168,11 +168,10 @@ function CopyButton({ text, label = 'value', className = '' }) {
       onClick={handleCopy}
       title={copied ? 'Copied to clipboard!' : `Copy ${label}`}
       aria-label={copied ? 'Copied' : `Copy ${label}`}
-      className={`inline-flex shrink-0 items-center gap-1 rounded-md px-1.5 py-0.5 text-xs font-medium transition-all active:scale-95 ${
-        copied
-          ? 'bg-emerald-100 text-emerald-800 ring-1 ring-emerald-300'
-          : 'text-slate-400 hover:bg-slate-100 hover:text-slate-700'
-      } ${className}`}
+      className={`inline-flex shrink-0 items-center gap-1 rounded-md px-1.5 py-0.5 text-xs font-medium transition-all active:scale-95 ${copied
+        ? 'bg-emerald-100 text-emerald-800 ring-1 ring-emerald-300'
+        : 'text-slate-400 hover:bg-slate-100 hover:text-slate-700'
+        } ${className}`}
     >
       {copied ? (
         <>
@@ -210,9 +209,8 @@ function Field({ label, value, wide = false }) {
 
   return (
     <div
-      className={`group rounded-xl border border-transparent p-2 transition hover:border-slate-200 hover:bg-slate-50/70 ${
-        wide ? 'sm:col-span-2' : ''
-      }`}
+      className={`group rounded-xl border border-transparent p-2 transition hover:border-slate-200 hover:bg-slate-50/70 ${wide ? 'sm:col-span-2' : ''
+        }`}
     >
       <div className="flex items-center justify-between gap-2">
         <p className="text-[11px] sm:text-xs font-semibold uppercase tracking-wider text-slate-500">
@@ -285,11 +283,10 @@ function DataTable({ rows, columns, emptyMessage, renderMobileCard }) {
           <button
             type="button"
             onClick={() => setMobileView('cards')}
-            className={`inline-flex items-center gap-1 rounded-md px-2.5 py-1 font-medium transition ${
-              mobileView === 'cards'
-                ? 'bg-white text-slate-900 shadow-xs'
-                : 'text-slate-500 hover:text-slate-900'
-            }`}
+            className={`inline-flex items-center gap-1 rounded-md px-2.5 py-1 font-medium transition ${mobileView === 'cards'
+              ? 'bg-white text-slate-900 shadow-xs'
+              : 'text-slate-500 hover:text-slate-900'
+              }`}
           >
             <Layers size={13} />
             Cards
@@ -297,11 +294,10 @@ function DataTable({ rows, columns, emptyMessage, renderMobileCard }) {
           <button
             type="button"
             onClick={() => setMobileView('table')}
-            className={`inline-flex items-center gap-1 rounded-md px-2.5 py-1 font-medium transition ${
-              mobileView === 'table'
-                ? 'bg-white text-slate-900 shadow-xs'
-                : 'text-slate-500 hover:text-slate-900'
-            }`}
+            className={`inline-flex items-center gap-1 rounded-md px-2.5 py-1 font-medium transition ${mobileView === 'table'
+              ? 'bg-white text-slate-900 shadow-xs'
+              : 'text-slate-500 hover:text-slate-900'
+              }`}
           >
             <TableIcon size={13} />
             Table
@@ -347,9 +343,8 @@ function DataTable({ rows, columns, emptyMessage, renderMobileCard }) {
 
       {/* Table view with per-cell CopyButton */}
       <div
-        className={`${
-          mobileView === 'cards' ? 'hidden sm:block' : 'block'
-        } overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-xs`}
+        className={`${mobileView === 'cards' ? 'hidden sm:block' : 'block'
+          } overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-xs`}
       >
         {/* Mobile swipe hint */}
         <div className="sm:hidden flex items-center justify-center gap-1.5 border-b border-slate-100 bg-slate-50/80 px-3 py-1.5 text-[11px] text-slate-500">
@@ -584,11 +579,10 @@ export default function App() {
                     setDragging(false)
                     chooseFile(event.dataTransfer.files?.[0])
                   }}
-                  className={`mt-4 sm:mt-6 flex min-h-48 sm:min-h-56 cursor-pointer flex-col items-center justify-center rounded-2xl border-2 border-dashed p-4 sm:p-6 text-center transition ${
-                    dragging
-                      ? 'border-blue-600 bg-blue-50'
-                      : 'border-slate-300 bg-slate-50/70 hover:border-blue-500 hover:bg-blue-50/50'
-                  }`}
+                  className={`mt-4 sm:mt-6 flex min-h-48 sm:min-h-56 cursor-pointer flex-col items-center justify-center rounded-2xl border-2 border-dashed p-4 sm:p-6 text-center transition ${dragging
+                    ? 'border-blue-600 bg-blue-50'
+                    : 'border-slate-300 bg-slate-50/70 hover:border-blue-500 hover:bg-blue-50/50'
+                    }`}
                 >
                   <input
                     type="file"
@@ -808,11 +802,10 @@ export default function App() {
                       setActiveTab(id)
                       setSearch('')
                     }}
-                    className={`inline-flex shrink-0 items-center gap-1.5 sm:gap-2 border-b-2 px-3 py-2.5 sm:px-4 sm:py-3 text-xs sm:text-sm font-semibold transition whitespace-nowrap ${
-                      activeTab === id
-                        ? 'border-blue-700 text-blue-700'
-                        : 'border-transparent text-slate-500 hover:border-slate-300 hover:text-slate-800'
-                    }`}
+                    className={`inline-flex shrink-0 items-center gap-1.5 sm:gap-2 border-b-2 px-3 py-2.5 sm:px-4 sm:py-3 text-xs sm:text-sm font-semibold transition whitespace-nowrap ${activeTab === id
+                      ? 'border-blue-700 text-blue-700'
+                      : 'border-transparent text-slate-500 hover:border-slate-300 hover:text-slate-800'
+                      }`}
                   >
                     <Icon size={16} />
                     {label}
@@ -963,7 +956,14 @@ export default function App() {
                     columns={[
                       { key: 'name', label: 'Name' },
                       { key: 'designation', label: 'Designation' },
-                      { key: 'DIN', label: 'DIN' },
+                      {
+                        key: 'DIN',
+                        label: 'DIN',
+                        render: (_, director) =>
+                          valueOf(director.DIN || director.DIN_PAN, '—'),
+                        copyValue: (_, director) =>
+                          director.DIN || director.DIN_PAN || '',
+                      },
                       { key: 'address', label: 'Address' },
                     ]}
                     renderMobileCard={(director, index) => (
@@ -981,9 +981,12 @@ export default function App() {
                             </div>
                             <div className="flex items-center gap-1.5 mt-0.5">
                               <p className="text-xs font-mono text-slate-500">
-                                DIN: {valueOf(director.DIN, '—')}
+                                DIN: {valueOf(director.DIN || director.DIN_PAN, '—')}
                               </p>
-                              <CopyButton text={director.DIN} label="DIN" />
+                              <CopyButton
+                                text={director.DIN || director.DIN_PAN}
+                                label="DIN"
+                              />
                             </div>
                           </div>
                           <div className="flex items-center gap-1 shrink-0">
@@ -1284,11 +1287,10 @@ export default function App() {
                           const verified = status.toLowerCase() === 'verified'
                           return (
                             <span
-                              className={`inline-flex rounded-full px-2.5 py-0.5 text-[11px] font-semibold ${
-                                verified
-                                  ? 'bg-emerald-50 text-emerald-700'
-                                  : 'bg-amber-50 text-amber-700'
-                              }`}
+                              className={`inline-flex rounded-full px-2.5 py-0.5 text-[11px] font-semibold ${verified
+                                ? 'bg-emerald-50 text-emerald-700'
+                                : 'bg-amber-50 text-amber-700'
+                                }`}
                             >
                               {status}
                             </span>
@@ -1313,11 +1315,10 @@ export default function App() {
                             </div>
                             <div className="flex items-center gap-1">
                               <span
-                                className={`inline-flex rounded-full px-2 py-0.5 text-[11px] font-semibold ${
-                                  verified
-                                    ? 'bg-emerald-50 text-emerald-700'
-                                    : 'bg-amber-50 text-amber-700'
-                                }`}
+                                className={`inline-flex rounded-full px-2 py-0.5 text-[11px] font-semibold ${verified
+                                  ? 'bg-emerald-50 text-emerald-700'
+                                  : 'bg-amber-50 text-amber-700'
+                                  }`}
                               >
                                 {status}
                               </span>
